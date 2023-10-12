@@ -1,5 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_pymongo import PyMongo
+import bson
 
 def create_app():
     app = Flask(__name__)
@@ -51,5 +52,22 @@ def create_app():
         ]
         result=list(userdetails.aggregate(pipeline))
         return jsonify({'avg_age': result[0]['avg_age']}), 200
+    
+    # Example route: /user/num_posts?id=6516a8f31ed01206dde6382c
+    @app.route("/user/num_posts", methods=["GET"])
+    def get_user_postcount():
+        user_id = request.args.get('id')
+        username = userdetails.find_one({"_id": bson.objectid.ObjectId(user_id)})["username"] 
+        count = posts.count_documents({"user": bson.objectid.ObjectId(user_id)})
+
+        return jsonify({"username": username, "Number of post": count}), 200
+    
+    @app.route("/avg_post_per_user", methods=["GET"])
+    def get_avg_post_per_user():
+        user_count = userdetails.count_documents({})
+        post_count = posts.count_documents({})
+
+        return jsonify({"Posts per user": post_count/user_count}), 200
+
 
     return app
